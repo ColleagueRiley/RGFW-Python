@@ -36,6 +36,9 @@ all:
 	make libRGFW$(LIB_EXT)
 	python3 basic.py
 
+build-RGFW:
+	make libRGFW$(LIB_EXT)	
+
 clean:
 	rm -f libRGFW.so libRGFW.dll libRGFW.dylib RGFW.o
 
