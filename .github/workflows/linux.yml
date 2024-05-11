@@ -63,14 +63,13 @@ jobs:
 
     - name: Build Library
       run: |
-        make build
+        make build-RGFW
       if: matrix.bits == 64
     
     - name: Generate Artifacts
       run: |
         cp -v ./RGFW.h ./build/${{ env.RELEASE_NAME }}/include
-        cp -v ./RGFW.py ./build/${{ env.RELEASE_NAME }}/
-        cp -v -r ./__pycache__ ./build/${{ env.RELEASE_NAME }}/
+        cp -v ./RGFW.py ./build/${{ env.RELEASE_NAME }}/lib
         cp -v ./libRSGL.so ./build/${{ env.RELEASE_NAME }}/lib
         cp -v ./README.md ./build/${{ env.RELEASE_NAME }}/README.md
         cd build

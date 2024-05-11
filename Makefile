@@ -36,7 +36,7 @@ all:
 	make libRGFW$(LIB_EXT)
 	python3 basic.py
 
-build:
+build-RGFW:
 	make libRGFW$(LIB_EXT)	
 
 clean:
