@@ -70,7 +70,7 @@ jobs:
       run: |
         cp -v ./RGFW.h ./build/${{ env.RELEASE_NAME }}/include
         cp -v ./RGFW.py ./build/${{ env.RELEASE_NAME }}/lib
-        cp -v ./libRSGL.so ./build/${{ env.RELEASE_NAME }}/lib
+        cp -v ./libRGFW.so ./build/${{ env.RELEASE_NAME }}/lib
         cp -v ./README.md ./build/${{ env.RELEASE_NAME }}/README.md
         cd build
         tar -czvf ${{ env.RELEASE_NAME }}.tar.gz ${{ env.RELEASE_NAME }}
