@@ -7,7 +7,7 @@ running = 1
 def main():
     global win2
     global running
- 
+    
     win = RGFW.createWindow("RGFW Example Window", RGFW.rect(500, 500, 500, 500), RGFW.ALLOW_DND | RGFW.CENTER)
     win.makeCurrent()
 
@@ -21,17 +21,17 @@ def main():
     
     glEnable(GL_BLEND)             
     glClearColor(0, 0, 0, 0)
-
-    while (running and not RGFW.isPressedI(win, RGFW.Escape)):
+    
+    while (RGFW.window.shouldClose(win) == False):
         win2.checkEvent()
         
         while (win.checkEvent()):
-            print(win.r.w)
-            #print(win.event.type)
-
-            if (win.event.type == RGFW.windowAttribsChange):
-                print("attribs changed\n")
+            if (win.event.type == RGFW.RGFW_windowMoved):
+                print("window moved\n")
+            elif (win.event.type == RGFW.RGFW_windowResized):
+                print("window resized\n")
             if (win.event.type == RGFW.quit):
+                print("h\n")
                 running = 0  
                 break
             

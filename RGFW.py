@@ -34,19 +34,34 @@ class monitor(Structure):
     _fields_ = [("name", c_char_p), ("rect", rect), ("scaleX", c_float), ("scaleY", c_float), ("physW", c_float), ("physH", c_float)]
 
 class Event(Structure):
-    _fields_ = [("keyName", c_char_p), ("droppedFiles", POINTER(c_char_p)), ("droppedFilesCount", c_uint32), ("type", c_uint32), ("point", vector), ("keyCode", c_uint32), ("inFocus", c_uint32), ("fps", c_uint32), ("current_ticks", c_uint32), ("frames", c_uint32), ("lockState", c_uint8), ("joystick", c_uint16), ("button", c_uint8), ("scroll", c_double), ("axisesCount", c_uint8), ("axis", vector * 2)]
+    _fields_ = [("keyName", c_char * 16), 
+                ("droppedFiles", ((c_char * 260) * 260)), 
+                ("droppedFilesCount", c_uint32), 
+                ("type", c_uint32), 
+                ("point", vector), 
+                ("keyCode", c_uint32), 
+                ("fps", c_uint32), 
+                ("frameTime", c_uint64), 
+                ("frameTime2", c_uint64), 
+                ("inFocus", c_uint8), 
+                ("lockState", c_uint8), 
+                ("joystick", c_uint16), 
+                ("button", c_uint8), 
+                ("scroll", c_double), 
+                ("axisesCount", c_uint8), 
+                ("axis", vector * 2)]
 
 class window_src(Structure):
     if (system == "Linux"):
         _fields_ = [
             ("display", ctypes.c_void_p),
             ("window", ctypes.c_void_p),
-            ("cursor", ctypes.c_void_p),
             ("rSurf", ctypes.c_void_p),
-            ("jsPressed", ctypes.c_uint8 * (4 * 16)),
+            ("jsPressed", (ctypes.c_uint8 * 16) * 4),
             ("joysticks", ctypes.c_int32 * 4),
             ("joystickCount", ctypes.c_uint16),
-            ("scale", area)
+            ("scale", area),
+            ("winArgs", ctypes.c_uint32)
         ]
     elif (system == "Darwin"):  # macOS
         _fields_ = [
@@ -87,7 +102,7 @@ class window(Structure):
     if  bufferRendering == True:
         _fields_ = [("src", window_src), ("buffer", POINTER(c_uint8)), ("event", Event), ("r", rect), ("fpsCap", c_uint8)]
     else:
-        _fields_ = [("src", window_src), ("event", Event), ("r", rect), ("fpsCap", c_uint8)]
+        _fields_ = [("src", window_src), ("event", Event), ("r", rect), ("fpsCap", c_int32)]
     
     def __init__(self, window_ptr):
         self.window_ptr = window_ptr
@@ -99,7 +114,7 @@ class window(Structure):
         
         if (bufferRendering == True):
             this.window_ptr.contents.buffer = this.buffer
-        print(this.window_ptr.contents.event.type)
+        
         return lib.RGFW_window_checkEvent(this.window_ptr)
 
     def shouldClose(this):
@@ -401,47 +416,12 @@ lib.RGFW_getTime.restype = c_uint64
 lib.RGFW_getTimeNS.argtypes = []
 lib.RGFW_getTimeNS.restype = c_uint64
 
-lib.RGFW_getFPS.argtypes = []
-lib.RGFW_getFPS.restype = c_uint32
-
 lib.RGFW_sleep.argtypes = [c_uint]
 lib.RGFW_sleep.restype = None
 
-def RGFW_OS_BASED_VALUE(l, w, m):
-    if (system == "Linux"):
-        return l
-    elif (system == "Windows"):
-        return w
-    elif (system == "Darwin"):  # macOS
-        return m
+lib.RGFW_window_setMouseStandard.argtypes = (POINTER(window), c_uint8)
+lib.RGFW_window_setMouseStandard.restype = None
 
-if (system == "Darwin"):  # macOS
-    lib.NSCursor_arrowStr.argtypes = [c_char_p]
-    lib.NSCursor_arrowStr.restype = c_void_p
-
-    lib.NSCursor_performSelector.argtypes = [c_void_p, c_void_p]
-    lib.NSCursor_performSelector.restype = None
-
-    lib.selector.argtypes = [c_void_p]
-    lib.selector.restype = c_void_p
-    
-    lib.RGFW_window_setMouseStandard.argtypes = [POINTER(window), c_void_p]
-    lib.RGFW_window_setMouseStandard.restype = None
-else:
-    lib.RGFW_window_setMouseStandard.argtypes = (POINTER(window), c_int32)
-    lib.RGFW_window_setMouseStandard.restype = None
-
-def NSCursor_arrowStr(str):
-    if (system == "Darwin"):
-        return lib.NSCursor_arrowStr(str)
-
-def NSCursor_performSelector(p):
-    if (system == "Darwin"):
-        return lib.NSCursor_performSelector(p)
-    
-def selector(p):
-    if (system == "Darwin"):
-        return lib.selector(p)
 
 keyPressed = 2 # a key has been pressed */
 keyReleased = 3 #!< a key has been released*/
@@ -476,11 +456,21 @@ jsAxisMove = 9 #!< an axis of a joystick was moved*/
 
 	RGFW_Event.axis holds the data of all the axis
 	RGFW_Event.axisCount says how many axis there are
+
 """
 
-windowAttribsChange = 10 #!< the window was moved or resized (by the user) */
+RGFW_windowMoved = 10 #!< the window was moved (by the user) */
+RGFW_windowResized = 11 #!< the window was resized (by the user) */
 """
 # attribs change event note
+	The event data is sent straight to the window structure
+	with win->r.x, win->r.y, win->r.w and win->r.h
+"""
+
+RGFW_focusIn = 12 #!< window is in focus now */
+RGFW_focusOut = 13 #!< window is out of focus now */
+
+""" attribs change event note
 	The event data is sent straight to the window structure
 	with win->r.x, win->r.y, win->r.w and win->r.h
 """
@@ -626,9 +616,6 @@ def getTime():
 def getTimeNS():
     return lib.RGFW_getTimeNS()
 
-def getFPS():
-    return lib.RGFW_getFPS()
-
 def sleep(microsecond):
     return lib.RGFW_sleep(microsecond)
 
@@ -636,152 +623,122 @@ def getScreenSize():
     return lib.RGFW_getScreenSize()
 
 
-Escape = RGFW_OS_BASED_VALUE(0xff1b, 0x1B, 53)
-F1 = RGFW_OS_BASED_VALUE(0xffbe, 0x70, 127)
-F2 = RGFW_OS_BASED_VALUE(0xffbf, 0x71, 121)
-F3 = RGFW_OS_BASED_VALUE(0xffc0, 0x72, 100)
-F4 = RGFW_OS_BASED_VALUE(0xffc1, 0x73, 119)
-F5 = RGFW_OS_BASED_VALUE(0xffc2, 0x74, 97)
-F6 = RGFW_OS_BASED_VALUE(0xffc3, 0x75, 98)
-F7 = RGFW_OS_BASED_VALUE(0xffc4, 0x76, 99)
-F8 = RGFW_OS_BASED_VALUE(0xffc5, 0x77, 101)
-F9 = RGFW_OS_BASED_VALUE(0xffc6, 0x78, 102)
-F10 = RGFW_OS_BASED_VALUE(0xffc7, 0x79, 110)
-F11 = RGFW_OS_BASED_VALUE(0xffc8, 0x7A, 104)
-F12 = RGFW_OS_BASED_VALUE(0xffc9, 0x7B, 112)
-F13 = RGFW_OS_BASED_VALUE(0xffca, 0x7C, 106)
-F14 = RGFW_OS_BASED_VALUE(0xffcb, 0x7D, 108)
-F15 = RGFW_OS_BASED_VALUE(0xffcc, 0x7E, 114)
+KEY_NULL = 0
+Escape = 1
+F1 = 2
+F2 = 3
+F3 = 4
+F4 = 5
+F5 = 6
+F6 = 7
+F7 = 8
+F8 = 9
+F9 = 10
+F10 = 11
+F11 = 12
+F12 = 13
+Backtick = 14
+KEY_0 = 15
+KEY_1 = 16
+KEY_2 = 17
+KEY_3 = 18
+KEY_4 = 19
+KEY_5 = 20
+KEY_6 = 21
+KEY_7 = 22
+KEY_8 = 23
+KEY_9 = 24
 
-Backtick = RGFW_OS_BASED_VALUE(96 , 192, 50)
+Minus = 25
+Equals = 26
+BackSpace = 27
+Tab = 28
+CapsLock = 29
+ShiftL = 30
+ControlL = 31
+AltL = 32
+SuperL = 33
+ShiftR = 34
+ControlR = 35
+AltR = 36
+SuperR = 37
+Space = 38
 
-K0 = RGFW_OS_BASED_VALUE(0x0030, 0x30, 29)
-K1 = RGFW_OS_BASED_VALUE(0x0031, 0x31, 18)
-K2 = RGFW_OS_BASED_VALUE(0x0032, 0x32, 19)
-K3 = RGFW_OS_BASED_VALUE(0x0033, 0x33, 20)
-K4 = RGFW_OS_BASED_VALUE(0x0034, 0x34, 21)
-K5 = RGFW_OS_BASED_VALUE(0x0035, 0x35, 23)
-K6 = RGFW_OS_BASED_VALUE(0x0036, 0x36, 22)
-K7 = RGFW_OS_BASED_VALUE(0x0037, 0x37, 26)
-K8 = RGFW_OS_BASED_VALUE(0x0038, 0x38, 28)
-K9 = RGFW_OS_BASED_VALUE(0x0039, 0x39, 25)
+a = 39
+b = 40
+c = 41
+d = 42
+e = 43
+f = 44
+g = 45
+h = 46
+i = 47
+j = 48
+k = 49
+l = 50
+m = 51
+n = 52
+o = 53
+p = 54
+q = 55
+r = 56
+s = 57
+t = 58
+u = 59
+v = 60
+w = 61
+x = 62
+y = 63
+z = 64
 
-Minus = RGFW_OS_BASED_VALUE(0x002d, 189, 27)
-Equals = RGFW_OS_BASED_VALUE(0x003d, 187, 24)
-BackSpace = RGFW_OS_BASED_VALUE(0xff08, 8, 51)
-Tab = RGFW_OS_BASED_VALUE(0xff89, 0x09, 48)
-CapsLock = RGFW_OS_BASED_VALUE(0xffe5, 20, 57)
-ShiftL = RGFW_OS_BASED_VALUE(0xffe1, 0xA0, 56)
-ControlL = RGFW_OS_BASED_VALUE(0xffe3, 0x11, 59)
-AltL = RGFW_OS_BASED_VALUE(0xffe9, 164, 58)
-SuperL = RGFW_OS_BASED_VALUE(0xffeb, 0x5B, 55) 
-ShiftR = RGFW_OS_BASED_VALUE(0xffe2, 0x5C, 56)
-ControlR = RGFW_OS_BASED_VALUE(0xffe4, 0x11, 59)
-AltR = RGFW_OS_BASED_VALUE(0xffea, 165, 58)
-SuperR = RGFW_OS_BASED_VALUE(0xffec, 0xA4, 55)
-Space = RGFW_OS_BASED_VALUE(0x0020,  0x20, 49)
+Period  = 65
+Comma = 66
+Slash = 67
+Bracket = 68
+CloseBracket = 69
+Semicolon = 70
+Return = 71
+Quote = 72
+BackSlash = 73
 
-A = RGFW_OS_BASED_VALUE(0x0041, 0x41, 0)
-B = RGFW_OS_BASED_VALUE(0x0042, 0x42, 11)
-C = RGFW_OS_BASED_VALUE(0x0043, 0x43, 8)
-D = RGFW_OS_BASED_VALUE(0x0044, 0x44, 2)
-E = RGFW_OS_BASED_VALUE(0x0045, 0x45, 14)
-F = RGFW_OS_BASED_VALUE(0x0046, 0x46, 3)
-G = RGFW_OS_BASED_VALUE(0x0047, 0x47, 5)
-H = RGFW_OS_BASED_VALUE(0x0048, 0x48, 4) 
-I = RGFW_OS_BASED_VALUE(0x0049, 0x49, 34)
-J = RGFW_OS_BASED_VALUE(0x004a, 0x4A, 38)
-K = RGFW_OS_BASED_VALUE(0x004b, 0x4B, 40)
-L = RGFW_OS_BASED_VALUE(0x004c, 0x4C, 37)
-M = RGFW_OS_BASED_VALUE(0x004d, 0x4D, 46)
-N = RGFW_OS_BASED_VALUE(0x004e, 0x4E, 45)
-O = RGFW_OS_BASED_VALUE(0x004f, 0x4F, 31)
-P = RGFW_OS_BASED_VALUE(0x0050, 0x50, 35)
-Q = RGFW_OS_BASED_VALUE(0x0051, 0x51, 12)
-R = RGFW_OS_BASED_VALUE(0x0052, 0x52, 15)
-S = RGFW_OS_BASED_VALUE(0x0053, 0x53, 1)
-T = RGFW_OS_BASED_VALUE(0x0054, 0x54, 17)
-U = RGFW_OS_BASED_VALUE(0x0055, 0x55, 32)
-V = RGFW_OS_BASED_VALUE(0x0056, 0x56, 9)
-W = RGFW_OS_BASED_VALUE(0x0057, 0x57, 13)
-X = RGFW_OS_BASED_VALUE(0x0058, 0x58, 7)
-Y = RGFW_OS_BASED_VALUE(0x0059, 0x59, 16)
-Z = RGFW_OS_BASED_VALUE(0x005a, 0x5A, 6)
+Up = 74
+Down = 75
+Left = 76
+Right = 77
 
-a = RGFW_OS_BASED_VALUE(0x0061, 0x41, 0)
-b = RGFW_OS_BASED_VALUE(0x0062, 0x42, 11)
-c = RGFW_OS_BASED_VALUE(0x0063, 0x43, 8)
-d = RGFW_OS_BASED_VALUE(0x0064, 0x44, 2)
-e = RGFW_OS_BASED_VALUE(0x0065, 0x45, 14)
-f = RGFW_OS_BASED_VALUE(0x0066, 0x46, 3)
-g = RGFW_OS_BASED_VALUE(0x0067, 0x47, 5)
-h = RGFW_OS_BASED_VALUE(0x0068, 0x48, 4)
-i = RGFW_OS_BASED_VALUE(0x0069, 0x49, 34)
-j = RGFW_OS_BASED_VALUE(0x006a, 0x4a, 38)
-k = RGFW_OS_BASED_VALUE(0x006b, 0x4b, 40)
-l = RGFW_OS_BASED_VALUE(0x006c, 0x4c, 37)
-m = RGFW_OS_BASED_VALUE(0x006d, 0x4d, 46)
-n = RGFW_OS_BASED_VALUE(0x006e, 0x4e, 45)
-o = RGFW_OS_BASED_VALUE(0x006f, 0x4f, 31)
-p = RGFW_OS_BASED_VALUE(0x0070, 0x50, 35)
-q = RGFW_OS_BASED_VALUE(0x0071, 0x51, 12)
-r = RGFW_OS_BASED_VALUE(0x0072, 0x52, 15)
-s = RGFW_OS_BASED_VALUE(0x0073, 0x53, 1)
-t = RGFW_OS_BASED_VALUE(0x0074, 0x54, 17)
-u = RGFW_OS_BASED_VALUE(0x0075, 0x55, 32)
-v = RGFW_OS_BASED_VALUE(0x0076, 0x56, 9)
-w = RGFW_OS_BASED_VALUE(0x0077, 0x57, 13)
-x = RGFW_OS_BASED_VALUE(0x0078, 0x58, 7) 
-y = RGFW_OS_BASED_VALUE(0x0079, 0x59, 16)
-z = RGFW_OS_BASED_VALUE(0x007a, 0x5A, 6)
+Delete = 78
+Insert = 79
+End = 80
+Home = 81
+PageUp = 82
+PageDown = 83
 
-Period = RGFW_OS_BASED_VALUE(0x002e, 190, 47)
-Comma = RGFW_OS_BASED_VALUE(0x002c, 188, 43)
-Slash = RGFW_OS_BASED_VALUE(0x002f, 191, 44)
-Bracket = RGFW_OS_BASED_VALUE(0x005b, 219, 33)
-CloseBracket = RGFW_OS_BASED_VALUE(0x005d, 221, 30) 
-Semicolon = RGFW_OS_BASED_VALUE(0x003b, 186, 41)
-Return = RGFW_OS_BASED_VALUE(0xff0d, 0x0D, 36) 
-Quote = RGFW_OS_BASED_VALUE(0x0022, 222, 39)
-BackSlash = RGFW_OS_BASED_VALUE(0x005c, 322, 42)
-
-Up = RGFW_OS_BASED_VALUE(0xff52, 0x26, 126)
-Down = RGFW_OS_BASED_VALUE(0xff54, 0x28, 125)
-Left = RGFW_OS_BASED_VALUE(0xff51, 0x25, 123)
-Right = RGFW_OS_BASED_VALUE(0xff53, 0x27, 124)
-
-Delete = RGFW_OS_BASED_VALUE(0xffff, 0x2E, 118)
-Insert = RGFW_OS_BASED_VALUE(0xff63, 0x2D, 115)
-End = RGFW_OS_BASED_VALUE(0xff57, 0x23, 120)
-Home = RGFW_OS_BASED_VALUE(0xff50, 0x24, 116) 
-PageUp = RGFW_OS_BASED_VALUE(0xff55, 336, 117)
-PageDown = RGFW_OS_BASED_VALUE(0xff56, 325, 122)
-
-Numlock = RGFW_OS_BASED_VALUE(0xff7f, 0x90, 72)
-KP_Slash = RGFW_OS_BASED_VALUE(0xffaf, 0x6F, 82)
-Multiply = RGFW_OS_BASED_VALUE(0xffaa, 0x6A, 76)
-KP_Minus = RGFW_OS_BASED_VALUE(0xffad, 0x6D, 67)
-KP_1 = RGFW_OS_BASED_VALUE(0xffb1, 0x61, 84)
-KP_2 = RGFW_OS_BASED_VALUE(0xffb2, 0x62, 85)
-KP_3 = RGFW_OS_BASED_VALUE(0xffb3, 0x63, 86)
-KP_4 = RGFW_OS_BASED_VALUE(0xffb4, 0x64, 87)
-KP_5 = RGFW_OS_BASED_VALUE(0xffb5, 0x65, 88)
-KP_6 = RGFW_OS_BASED_VALUE(0xffb6, 0x66, 89)
-KP_7 = RGFW_OS_BASED_VALUE(0xffb7, 0x67, 90)
-KP_8 = RGFW_OS_BASED_VALUE(0xffb8, 0x68, 92)
-KP_9 = RGFW_OS_BASED_VALUE(0xffb9, 0x619, 93)
-KP_0 = RGFW_OS_BASED_VALUE(0xffb0, 0x60, 83)
-KP_Period = RGFW_OS_BASED_VALUE(0xffae, 0x6E, 65)
-KP_Return = RGFW_OS_BASED_VALUE(0xff8d, 0x92, 77)
+Numlock = 84
+KP_Slash = 85
+Multiply = 86
+KP_Minus = 87
+KP_1 = 88
+KP_2 = 89
+KP_3 = 90
+KP_4 = 91
+KP_5 = 92
+KP_6 = 93
+KP_7 = 94
+KP_8 = 95
+KP_9 = 96
+KP_0 = 97
+KP_Period = 98
+KP_Return = 99
 
 # mouse icons
-MOUSE_ARROW 				= RGFW_OS_BASED_VALUE(68,   32512, NSCursor_arrowStr("arrowCursor"))
-MOUSE_IBEAM 				= RGFW_OS_BASED_VALUE(152,  32513, NSCursor_arrowStr("IBeamCursor"))
-MOUSE_CROSSHAIR		 	= RGFW_OS_BASED_VALUE(34,   32515, NSCursor_arrowStr("crosshairCursor"))
-MOUSE_POINTING_HAND 		= RGFW_OS_BASED_VALUE(60,   32649, NSCursor_arrowStr("pointingHandCursor"))
-MOUSE_RESIZE_EW 			= RGFW_OS_BASED_VALUE(108,  32644, NSCursor_arrowStr("resizeLeftRightCursor"))
-MOUSE_RESIZE_NS  			= RGFW_OS_BASED_VALUE(116,  32645, NSCursor_arrowStr("resizeUpDownCursor"))
-MOUSE_RESIZE_ALL 			= RGFW_OS_BASED_VALUE(52,   32646, NSCursor_arrowStr("closedHandCursor"))
-MOUSE_RESIZE_NWSE 			= RGFW_OS_BASED_VALUE(12,   32642, NSCursor_performSelector(selector("_windowResizeNorthWestSouthEastCursor")))
-MOUSE_RESIZE_NESW 			= RGFW_OS_BASED_VALUE(14,   32643, NSCursor_performSelector(selector("_windowResizeNorthEastSouthWestCursor")))
-MOUSE_NOT_ALLOWED 			= RGFW_OS_BASED_VALUE(0,    32648, NSCursor_arrowStr("operationNotAllowedCursor"))
+MOUSE_NORMAL = 0 
+MOUSE_ARROW = 2
+MOUSE_IBEAM = 3
+MOUSE_CROSSHAIR = 4
+MOUSE_POINTING_HAND = 5
+MOUSE_RESIZE_EW = 6
+MOUSE_RESIZE_NS = 7
+MOUSE_RESIZE_NWSE = 8
+MOUSE_RESIZE_NESW = 9
+MOUSE_RESIZE_ALL = 10
+MOUSE_NOT_ALLOWED = 11
