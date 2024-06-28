@@ -24,22 +24,19 @@ def main():
     
     while (RGFW.window.shouldClose(win) == False):
         win2.checkEvent()
-        
         while (win.checkEvent()):
             if (win.event.type == RGFW.RGFW_windowMoved):
-                print("window moved\n")
+                print("window moved")
             elif (win.event.type == RGFW.RGFW_windowResized):
-                print("window resized\n")
+                print("window resized")
             if (win.event.type == RGFW.quit):
-                print("h\n")
                 running = 0  
                 break
             
             if (RGFW.isPressedI(win, RGFW.Up)):
-                str = RGFW.readClipboard(None)
-                print("Pasted : ", str)
-                RGFW.clipboardFree(str)
-            
+                string = RGFW.readClipboard(None)
+                print("Pasted : ", RGFW.cstrToStr(string))
+
             elif (RGFW.isPressedI(win, RGFW.Down)):
                 RGFW.writeClipboard("DOWN")
             elif (RGFW.isPressedI(win, RGFW.Space)):
@@ -53,8 +50,7 @@ def main():
             
             if (win.event.type == RGFW.dnd):
                 for i in range(win.event.droppedFilesCount):
-                    print("dropped : ", win.event.droppedFiles[i])
-            
+                    print("dropped :", RGFW.cstrToStr(win.event.droppedFiles[i]))
             elif (win.event.type == RGFW.jsButtonPressed):
                 print("pressed :", win.event.button)
 
