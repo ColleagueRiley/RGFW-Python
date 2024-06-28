@@ -20,7 +20,6 @@ lib_path = os.path.join(os.path.dirname(__file__), "libRGFW" + lib_extension)
 # Load the shared library
 lib = ctypes.CDLL(lib_path)
 from ctypes import Structure, POINTER, CFUNCTYPE, c_char_p, c_int, c_uint, c_double, c_void_p, c_uint32, c_uint64, c_char, c_uint16, c_uint8, c_int32, c_float, cdll
-
 class vector(Structure):
     _fields_ = [("x", c_int32), ("y", c_int32)]
 
@@ -111,6 +110,9 @@ class window(Structure):
 
     def checkEvent(this):
         return lib.RGFW_window_checkEvent(this)
+    
+    def checkEvents(this):
+        return lib.RGFW_window_checkEvents(this)
         
     def shouldClose(this):
         return lib.RGFW_window_shouldClose(this)
@@ -241,6 +243,9 @@ lib.RGFW_getScreenSize.restype = area
 
 lib.RGFW_window_checkEvent.argtypes = [POINTER(window)]
 lib.RGFW_window_checkEvent.restype = POINTER(Event)
+
+lib.RGFW_window_checkEvents.argtypes = [POINTER(window)]
+lib.RGFW_window_checkEvents.restype = None
 
 lib.RGFW_window_close.argtypes = [POINTER(window)]
 lib.RGFW_window_close.restype = None
@@ -436,6 +441,72 @@ lib.RGFW_sleep.restype = None
 lib.RGFW_window_setMouseStandard.argtypes = (POINTER(window), c_uint8)
 lib.RGFW_window_setMouseStandard.restype = None
 
+# RGFW.windowMoved, the window and its new rect value  */
+windowmovefunc       = CFUNCTYPE(POINTER(window), rect)
+# RGFW.windowResized, the window and its new rect value  */
+windowresizefunc       = CFUNCTYPE(POINTER(window), rect)
+# RGFW.quit, the window that was closed */
+windowquitfunc       = CFUNCTYPE(POINTER(window))
+# RGFW.focusIn / RGFW_focusOut, the window who's focus has changed and if its inFocus */
+FOCUSCALLBACK       = CFUNCTYPE(POINTER(window), c_uint8)
+# RGFW.mouseEnter / RGFW_mouseLeave, the window that changed, the point of the mouse (enter only) and if the mouse has entered */
+mouseNotifyfunc       = CFUNCTYPE(POINTER(window), vector, c_uint8)
+# RGFW.mousePosChanged, the window that the move happened on and the new point of the mouse  */
+mouseposfunc       = CFUNCTYPE(POINTER(window), vector)
+#  RGFW.dnd, the window that had the drop, the drop data and the amount files dropped */
+dndfunc       = CFUNCTYPE(POINTER(window), POINTER(c_char_p), c_uint32)
+# RGFW.dnd_init, the window, the point of the drop on the windows */
+dndInitfunc       = CFUNCTYPE(POINTER(window), vector)
+# RGFW.windowRefresh, the window that needs to be refreshed */
+windowrefreshfunc       = CFUNCTYPE(POINTER(window))
+# RGFW.keyPressed / RGFW_keyReleased, the window that got the event, the keycode, the string version, the state of mod keys, if it was a press (else it's a release) */
+keyfunc       = CFUNCTYPE(POINTER(window), c_uint32, c_char * 16, c_uint8, c_uint8)
+# RGFW.mouseButtonPressed / RGFW_mouseButtonReleased, the window that got the event, the button that was pressed, the scroll value, if it was a press (else it's a release)  */
+mousebuttonfunc       = CFUNCTYPE(POINTER(window), c_uint8, c_double, c_uint8)
+# RGFW.jsButtonPressed / RGFW_jsButtonReleased, the window that got the event, the button that was pressed, the scroll value, if it was a press (else it's a release) */
+jsButtonfunc       = CFUNCTYPE(POINTER(window), c_uint16, c_uint8, c_uint8)
+# RGFW.jsAxisMove, the window that got the event, the joystick in question, the axis values and the amount of axises */
+jsAxisfunc       = CFUNCTYPE(POINTER(window), c_uint16, vector * 2, c_uint8)
+
+
+lib.RGFW_setWindowMoveCallback.argtypes = [windowmovefunc]
+lib.RGFW_setWindowMoveCallback.restype = None
+
+lib.RGFW_setWindowResizeCallback.argtypes = [windowresizefunc]
+lib.RGFW_setWindowResizeCallback.restype = None
+
+lib.RGFW_setWindowQuitCallback.argtypes = [windowquitfunc]
+lib.RGFW_setWindowQuitCallback.restype = None
+
+lib.RGFW_setMousePosCallback.argtypes = [mouseposfunc]
+lib.RGFW_setMousePosCallback.restype = None
+
+lib.RGFW_setWindowRefreshCallback.argtypes = [windowrefreshfunc]
+lib.RGFW_setWindowRefreshCallback.restype = None
+
+lib.RGFW_setFocusCallback.argtypes = [FOCUSCALLBACK]
+lib.RGFW_setFocusCallback.restype = None
+
+lib.RGFW_setMouseNotifyCallBack.argtypes = [mouseNotifyfunc]
+lib.RGFW_setMouseNotifyCallBack.restype = None
+
+lib.RGFW_setDndCallback.argtypes = [dndfunc]
+lib.RGFW_setDndCallback.restype = None
+
+lib.RGFW_setDndInitCallback.argtypes = [dndInitfunc]
+lib.RGFW_setDndInitCallback.restype = None
+
+lib.RGFW_setKeyCallback.argtypes = [keyfunc]
+lib.RGFW_setKeyCallback.restype = None
+
+lib.RGFW_setMouseButtonCallback.argtypes = [mousebuttonfunc]
+lib.RGFW_setMouseButtonCallback.restype = None
+
+lib.RGFW_setjsButtonCallback.argtypes = [jsButtonfunc]
+lib.RGFW_setjsButtonCallback.restype = None
+
+lib.RGFW_setjsAxisCallback.argtypes = [jsAxisfunc]
+lib.RGFW_setjsAxisCallback.restype = None
 
 keyPressed = 2 # a key has been pressed */
 keyReleased = 3 #!< a key has been released*/
@@ -473,21 +544,27 @@ jsAxisMove = 9 #!< an axis of a joystick was moved*/
 
 """
 
-RGFW_windowMoved = 10 #!< the window was moved (by the user) */
-RGFW_windowResized = 11 #!< the window was resized (by the user) */
+windowMoved = 10 #!< the window was moved (by the user) */
+windowResized = 11 #!< the window was resized (by the user) */
 """
 # attribs change event note
 	The event data is sent straight to the window structure
 	with win->r.x, win->r.y, win->r.w and win->r.h
 """
 
-RGFW_focusIn = 12 #!< window is in focus now */
-RGFW_focusOut = 13 #!< window is out of focus now */
+focusIn = 12 #!< window is in focus now */
+focusOut = 13 #!< window is out of focus now */
 
 """ attribs change event note
 	The event data is sent straight to the window structure
 	with win->r.x, win->r.y, win->r.w and win->r.h
 """
+
+RGFW_mouseEnter = 14 #* mouse entered the window */
+mouseLeave =15 #* mouse left the window */
+
+windowRefresh = 16 #* The window content needs to be refreshed */
+
 
 quit = 33 #!< the user clicked the quit button*/ 
 dnd = 34 #!< a file has been dropped into the window*/
@@ -639,6 +716,35 @@ def sleep(microsecond):
 def getScreenSize():
     return lib.RGFW_getScreenSize()
 
+
+def setWindowMoveCallback(func): 
+    lib.RGFW_setWindowMoveCallback(func)
+def setWindowResizeCallback(func): 
+    lib.RGFW_setWindowResizeCallback(func)
+def setWindowQuitCallback(func): 
+    lib.RGFW_setWindowQuitCallback(func)
+def setMousePosCallback(func): 
+    lib.RGFW_setMousePosCallback(func)
+def setWindowRefreshCallback(func): 
+    lib.RGFW_setWindowRefreshCallback(func)
+def setFocusCallback(func): 
+    nfunc = FOCUSCALLBACK(func)
+    lib.RGFW_setFocusCallback(nfunc)
+
+def setMouseNotifyCallback(func): 
+    lib.RGFW_setMouseNotifyCallBack(func)
+def setDndCallback(func): 
+    lib.RGFW_setDndCallback(func)
+def setDndInitCallback(func): 
+    lib.RGFW_setDndInitCallback(func)
+def setKeyCallback(func): 
+    lib.RGFW_setKeyCallback = func 
+def setMouseButtonCallback(func): 
+    lib.RGFW_setMouseButtonCallback(func)
+def setjsButtonCallback(func): 
+    lib.RGFW_setjsButtonCallback(func)
+def setjsAxisCallback(func):
+    lib.RGFW_setjsAxisCallback(func)
 
 KEY_NULL = 0
 Escape = 1
