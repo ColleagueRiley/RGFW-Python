@@ -99,129 +99,123 @@ except:
     bufferRendering = False
 
 class window(Structure):
-    if  bufferRendering == True:
+    if bufferRendering == True:
         _fields_ = [("src", window_src), ("buffer", POINTER(c_uint8)), ("event", Event), ("r", rect), ("fpsCap", c_uint8)]
     else:
         _fields_ = [("src", window_src), ("event", Event), ("r", rect), ("fpsCap", c_int32)]
-    
-    def __init__(self, window_ptr):
-        self.window_ptr = window_ptr
 
     def checkEvent(this):
-        this.event.type = this.window_ptr.contents.event.type
-        this.r = this.window_ptr.contents.r
-        this.window_ptr.contents.fpsCap = this.fpsCap
+        return lib.RGFW_window_checkEvent(this)
         
-        if (bufferRendering == True):
-            this.window_ptr.contents.buffer = this.buffer
-        
-        return lib.RGFW_window_checkEvent(this.window_ptr)
-
     def shouldClose(this):
-        return lib.RGFW_window_shouldClose(this.window_ptr)
+        return lib.RGFW_window_shouldClose(this)
 
     def close(this):
-        return lib.RGFW_window_close(this.window_ptr)
+        return lib.RGFW_window_close(this)
     
     def setMinSize(this, a):
-        return lib.RGFW_window_setMinSize(this.window_ptr, a)
+        return lib.RGFW_window_setMinSize(this, a)
     
     def setMaxSize(this, a):
-        return lib.RGFW_window_setMaxSize(this.window_ptr, a)
+        return lib.RGFW_window_setMaxSize(this, a)
 
     def maximize(this):
-        return lib.RGFW_window_maximize(this.window_ptr)
+        return lib.RGFW_window_maximize(this)
 
     def minimize(this):
-        return lib.RGFW_window_minimize(this.window_ptr)
+        return lib.RGFW_window_minimize(this)
 
     def restore(this):
-        return lib.RGFW_window_restore(this.window_ptr)
+        return lib.RGFW_window_restore(this)
 
     def setName(this, name):
-        return lib.RGFW_window_setName(this.window_ptr, name)
+        return lib.RGFW_window_setName(this, name)
 
     def setIcon(this, icon, a, channels):
         ctypes_array = (ctypes.c_ubyte * len(icon))(*icon)
 
         pointer_to_array = ctypes.cast(ctypes_array, ctypes.POINTER(ctypes.c_ubyte))
 
-        return lib.RGFW_window_setIcon(this.window_ptr, pointer_to_array, a, channels)
+        return lib.RGFW_window_setIcon(this, pointer_to_array, a, channels)
 
     def setMouse(this, image, a, channels):
-        return lib.RGFW_window_setMouse(this.window_ptr, image, a, channels)
+        ctypes_array = (ctypes.c_ubyte * len(image))(*image)
+
+        pointer_to_array = ctypes.cast(ctypes_array, ctypes.POINTER(ctypes.c_ubyte))
+
+        return lib.RGFW_window_setMouse(this, pointer_to_array, a, channels)
 
     def setMouseDefault(this):
-        return lib.RGFW_window_setMouseDefault(this.window_ptr)
+        return lib.RGFW_window_setMouseDefault(this)
 
     def mouseHold(this):
-        return lib.RGFW_window_mouseHold(this.window_ptr)
+        return lib.RGFW_window_mouseHold(this)
 
     def mouseUnhold(this):
-        return lib.RGFW_window_mouseUnhold(this.window_ptr)
+        return lib.RGFW_window_mouseUnhold(this)
 
     def hide(this):
-        return lib.RGFW_window_hide(this.window_ptr)
+        return lib.RGFW_window_hide(this)
 
     def show(this):
-        return lib.RGFW_window_show(this.window_ptr)
+        return lib.RGFW_window_show(this)
 
     def setShouldClose(this):
-        return lib.RGFW_window_setShouldClose(this).window_ptr
+        return lib.RGFW_window_setShouldClose(this)
 
     def showMouse(this, show):
-        return lib.RGFW_window_showMouse(this.window_ptr, show)
+        return lib.RGFW_window_showMouse(this, show)
 
     def moveMouse(this, v):
-        return lib.RGFW_window_moveMouse(this.window_ptr, v)
+        return lib.RGFW_window_moveMouse(this, v)
 
     def shouldClose(this):
-        return lib.RGFW_window_shouldClose(this.window_ptr)
+        return lib.RGFW_window_shouldClose(this)
 
     def isFullscreen(this):
-        return lib.RGFW_window_isFullscreen(this.window_ptr)
+        return lib.RGFW_window_isFullscreen(this)
 
     def isHidden(this):
-        return lib.RGFW_window_isHidden(this.window_ptr)
+        return lib.RGFW_window_isHidden(this)
 
     def isMinimized(this):
-        return lib.RGFW_window_isMinimized(this.window_ptr)
+        return lib.RGFW_window_isMinimized(this)
 
     def isMaximized(this):
-        return lib.RGFW_window_isMaximized(this.window_ptr)
+        return lib.RGFW_window_isMaximized(this)
 
     def scaleToMonitor(this):
-        return lib.RGFW_window_scaleToMonitor(this.window_ptr)
+        return lib.RGFW_window_scaleToMonitor(this)
 
     def RGFW_window_getMonitor(this):
-        return lib.RGFW_window_getMonitor(this.window_ptr)
+        return lib.RGFW_window_getMonitor(this)
 
     def makeCurrent(this):
-        return lib.RGFW_window_makeCurrent(this.window_ptr)
+        return lib.RGFW_window_makeCurrent(this)
 
     def swapBuffers(this):
-        return lib.RGFW_window_swapBuffers(this.window_ptr)
+        return lib.RGFW_window_swapBuffers(this)
 
     def swapInterval(this, swapInterval):
-        return lib.RGFW_window_swapInterval(this.window_ptr, swapInterval)
+        return lib.RGFW_window_swapInterval(this, swapInterval)
 
     def setGPURender(this, set):
-        return lib.RGFW_window_setGPURender(this.window_ptr, set)
+        return lib.RGFW_window_setGPURender(this, set)
 
     def checkFPS(this):
-        return lib.RGFW_window_checkFPS(this.window_ptr)
+        return lib.RGFW_window_checkFPS(this)
 
     def setMouseStandard(this, mouse):
-        return lib.RGFW_window_setMouseStandard(this.window_ptr, mouse)
+        return lib.RGFW_window_setMouseStandard(this, mouse)
 
     def move(this, v):
-        return lib.RGFW_window_move(this.window_ptr, v)
+        return lib.RGFW_window_move(this, v)
 
     def moveToMonitor(this, m):
-        return lib.RGFW_window_moveToMonitor(this.window_ptr, m)
+        return lib.RGFW_window_moveToMonitor(this, m)
 
     def resize(this, a):
-        return lib.RGFW_window_resize(this.window_ptr, a)
+        return lib.RGFW_window_resize(this, a)
 
 
 
@@ -347,6 +341,9 @@ lib.RGFW_keyCodeTokeyStr.restype = c_char_p
 
 lib.RGFW_keyStrToKeyCode.argtypes = [c_char_p]
 lib.RGFW_keyStrToKeyCode.restype = c_uint32
+
+lib.RGFW_clipboardFree.argtypes = [c_char_p]
+lib.RGFW_clipboardFree.restype = None
 
 lib.RGFW_readClipboard.argtypes = [POINTER(c_uint)]
 lib.RGFW_readClipboard.restype = c_char_p
@@ -528,13 +525,16 @@ NO_GPU_RENDER     = (1<<14)  # don't render (using the GPU based API)*/
 NO_CPU_RENDER     = (1<<15)  # don't render (using the CPU based buffer rendering)*/
 
 
+def cstrToStr(str : ctypes.c_char_p):
+    return ctypes.string_at(str).decode('utf-8')
+
 def createWindow(name, rect, args):
     c_string = ctypes.c_char_p(name.encode('utf-8'))
     window_ptr = lib.RGFW_createWindow(c_string, rect, args)
     if window_ptr is None:
         raise RuntimeError("Failed to create window")
 
-    return window(window_ptr)
+    return window_ptr.contents
 
 def getMonitors():
     return lib.RGFW_getMonitors()
@@ -549,7 +549,7 @@ def Error():
     return lib.RGFW_Error()
 
 def isPressedI(win, key):
-    return lib.RGFW_isPressedI(win.window_ptr, key)
+    return lib.RGFW_isPressedI(win, key)
 
 def keyCodeTokeyStr(key):
     return lib.RGFW_keyCodeTokeyStr(key)
@@ -558,11 +558,10 @@ def keyStrToKeyCode(key):
     return lib.RGFW_keyStrToKeyCode(key)
 
 def readClipboard(size):
-    c_string_pointer = lib.RGFW_readClipboard(size)
-    return ctypes.string_at(c_string_pointer).decode('utf-8')
-
-def clipboardFree(str):
-    return
+    return lib.RGFW_readClipboard(size)
+    
+def clipboardFree(string):
+    return lib.RGFW_clipboardFree(string)
 
 def writeClipboard(text):
     c_string = ctypes.c_char_p(text.encode('utf-8'))
@@ -584,13 +583,13 @@ def setThreadPriority(thread, priority):
     return lib.RGFW_setThreadPriority(thread, priority)
 
 def registerJoystick(win, jsNumber):
-    return lib.RGFW_registerJoystick(win.window_ptr, jsNumber)
+    return lib.RGFW_registerJoystick(win, jsNumber)
 
 def registerJoystickF(win, file):
-    return lib.RGFW_registerJoystickF(win.window_ptr, file)
+    return lib.RGFW_registerJoystickF(win, file)
 
 def isPressedJS(win, controller, button):
-    return lib.RGFW_isPressedJS(win.window_ptr, controller, button)
+    return lib.RGFW_isPressedJS(win, controller, button)
 
 def setGLStencil(stencil):
     return lib.RGFW_setGLStencil(stencil)
