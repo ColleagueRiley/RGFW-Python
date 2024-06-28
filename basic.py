@@ -15,8 +15,10 @@ def main():
 
     win.swapInterval(1)
 
+    win.buffer[0] = 1
+
     win2 = RGFW.createWindow("subwindow", RGFW.rect(200, 200, 200, 200), 0)
-    
+
     glEnable(GL_BLEND)
     
     glEnable(GL_BLEND)             

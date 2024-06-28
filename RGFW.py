@@ -51,12 +51,15 @@ class Event(Structure):
                 ("axisesCount", c_uint8), 
                 ("axis", vector * 2)]
 
+
+
 class window_src(Structure):
     if (system == "Linux"):
         _fields_ = [
             ("display", ctypes.c_void_p),
             ("window", ctypes.c_void_p),
             ("rSurf", ctypes.c_void_p),
+            ("bitmap", ctypes.c_void_p),
             ("jsPressed", (ctypes.c_uint8 * 16) * 4),
             ("joysticks", ctypes.c_int32 * 4),
             ("joystickCount", ctypes.c_uint16),
@@ -91,6 +94,8 @@ class window_src(Structure):
             ("joystickCount", ctypes.c_uint16),
             ("scale", area)
         ]
+
+bufferRendering = True
 
 try:
     if (bufferRendering == True):
@@ -193,6 +198,9 @@ class window(Structure):
     def makeCurrent(this):
         return lib.RGFW_window_makeCurrent(this)
 
+    def getMousePoint(this): 
+        return lib.RGFW_window_getMousePoint(this)
+    
     def swapBuffers(this):
         return lib.RGFW_window_swapBuffers(this)
 
@@ -201,9 +209,9 @@ class window(Structure):
 
     def setGPURender(this, set):
         return lib.RGFW_window_setGPURender(this, set)
-
-    def checkFPS(this):
-        return lib.RGFW_window_checkFPS(this)
+    
+    def setCPURender(this, set):
+        return lib.RGFW_window_setCPURender(this, set)
 
     def setMouseStandard(this, mouse):
         return lib.RGFW_window_setMouseStandard(this, mouse)
@@ -329,6 +337,15 @@ lib.RGFW_window_getMonitor.restype = monitor
 
 lib.RGFW_window_makeCurrent.argtypes = [POINTER(window)]
 lib.RGFW_window_makeCurrent.restype = None
+
+lib.RGFW_window_getMousePoint.argtypes = [POINTER(window)]
+lib.RGFW_window_getMousePoint.restype = vector
+
+lib.RGFW_window_setGPURender.argtypes = [POINTER(window), c_int]
+lib.RGFW_window_setGPURender.restype = None
+
+lib.RGFW_window_setCPURender.argtypes = [POINTER(window), c_int]
+lib.RGFW_window_setCPURender.restype = None
 
 lib.RGFW_Error.argtypes = []
 lib.RGFW_Error.restype = c_uint8
@@ -534,6 +551,7 @@ def createWindow(name, rect, args):
     if window_ptr is None:
         raise RuntimeError("Failed to create window")
 
+    window_ptr.contents.setCPURender(False)
     return window_ptr.contents
 
 def getMonitors():
