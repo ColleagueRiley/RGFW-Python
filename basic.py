@@ -4,6 +4,12 @@ from OpenGL.GL import *
 icon = [0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF]
 running = 1
 
+def focus(win, focus):
+    if (focus):
+        print("window in focus")
+    else:
+        print("window out of focus")
+
 def main():
     global win2
     global running
@@ -24,12 +30,13 @@ def main():
     glEnable(GL_BLEND)             
     glClearColor(0, 0, 0, 0)
     
+ 
     while (RGFW.window.shouldClose(win) == False):
         win2.checkEvent()
         while (win.checkEvent()):
-            if (win.event.type == RGFW.RGFW_windowMoved):
+            if (win.event.type == RGFW.windowMoved):
                 print("window moved")
-            elif (win.event.type == RGFW.RGFW_windowResized):
+            elif (win.event.type == RGFW.windowResized):
                 print("window resized")
             if (win.event.type == RGFW.quit):
                 running = 0  
