@@ -20,7 +20,7 @@ lib_path = os.path.join(os.path.dirname(__file__), "libRGFW" + lib_extension)
 # Load the shared library
 lib = ctypes.CDLL(lib_path)
 from ctypes import Structure, POINTER, CFUNCTYPE, c_char_p, c_int, c_uint, c_double, c_void_p, c_uint32, c_uint64, c_char, c_uint16, c_uint8, c_int32, c_float, cdll
-class vector(Structure):
+class point(Structure):
     _fields_ = [("x", c_int32), ("y", c_int32)]
 
 class rect(Structure):
@@ -37,62 +37,21 @@ class Event(Structure):
                 ("droppedFiles", ((c_char * 260) * 260)), 
                 ("droppedFilesCount", c_uint32), 
                 ("type", c_uint32), 
-                ("point", vector), 
-                ("keyCode", c_uint32), 
-                ("fps", c_uint32), 
-                ("frameTime", c_uint64), 
-                ("frameTime2", c_uint64), 
+                ("point", point), 
+                ("keyCode", c_uint8), 
+                ("repeat", c_uint8),
                 ("inFocus", c_uint8), 
-                ("lockState", c_uint8), 
-                ("joystick", c_uint16), 
+                ("lockState", c_uint8),
                 ("button", c_uint8), 
                 ("scroll", c_double), 
+
+                ("gamepad", c_uint16), 
                 ("axisesCount", c_uint8), 
-                ("axis", vector * 2)]
-
-
-
-class window_src(Structure):
-    if (system == "Linux"):
-        _fields_ = [
-            ("display", ctypes.c_void_p),
-            ("window", ctypes.c_void_p),
-            ("rSurf", ctypes.c_void_p),
-            ("bitmap", ctypes.c_void_p),
-            ("jsPressed", (ctypes.c_uint8 * 16) * 4),
-            ("joysticks", ctypes.c_int32 * 4),
-            ("joystickCount", ctypes.c_uint16),
-            ("scale", area),
-            ("winArgs", ctypes.c_uint32)
-        ]
-    elif (system == "Darwin"):  # macOS
-        _fields_ = [
-            ("display", ctypes.c_uint32),
-            ("displayLink", ctypes.c_void_p),
-            ("window", ctypes.c_void_p),
-            ("rSurf", ctypes.c_void_p),
-            ("view", ctypes.c_void_p),
-            ("jsPressed", ctypes.c_uint8 * (4 * 16)),
-            ("joysticks", ctypes.c_int32 * 4),
-            ("joystickCount", ctypes.c_uint16),
-            ("scale", area),
-            ("cursorChanged", ctypes.c_uint8),
-            ("winArgs", ctypes.c_uint32)
-        ]
-    elif (system == "Windows"):
-        _fields_ = [
-            ("window", ctypes.c_void_p),
-            ("hdc", ctypes.c_void_p),
-            ("hOffset", ctypes.c_uint32),
-            ("rSurf", ctypes.c_void_p),
-            ("maxSize", area),
-            ("minSize", area),
-            ("winArgs", ctypes.c_uint32),
-            ("jsPressed", ctypes.c_uint8 * (4 * 16)),
-            ("joysticks", ctypes.c_int32 * 4),
-            ("joystickCount", ctypes.c_uint16),
-            ("scale", area)
-        ]
+                ("whichAxis", c_uint8), 
+                ("axis", point * 4),
+                
+                ("frameTime", c_uint64), 
+                ("frameTime2", c_uint64)]
 
 bufferRendering = True
 
@@ -102,17 +61,65 @@ try:
 except:
     bufferRendering = False
 
+class window_src(Structure):
+    if (system == "Linux"):
+        if (bufferRendering == True):
+            _fields_ = [
+                ("display", ctypes.c_void_p),
+                ("window", ctypes.c_void_p),
+                ("ctx", ctypes.c_void_p),
+                ("bitmap", ctypes.c_void_p),
+                ("gc", ctypes.c_void_p),
+            ]
+        else:
+            _fields_ = [("display", ctypes.c_void_p), ("window", ctypes.c_void_p), ("ctx", ctypes.c_void_p),]
+    elif (system == "Darwin"):  # macOS
+        if (bufferRendering == True):
+            _fields_ = [
+                ("display", ctypes.c_uint32),
+                ("displayLink", ctypes.c_void_p),
+                ("window", ctypes.c_void_p),
+                ("dndPassed", ctypes.c_uint8),
+                ("ctx", ctypes.c_void_p),
+                ("view", ctypes.c_void_p),
+                ("viebitmapw", ctypes.c_void_p),
+                ("image", ctypes.c_void_p)
+            ]
+        else:
+            _fields_ = [
+                ("display", ctypes.c_uint32), ("displayLink", ctypes.c_void_p), ("window", ctypes.c_void_p), ("dndPassed", ctypes.c_uint8), ("ctx", ctypes.c_void_p), ("view", ctypes.c_void_p), ("viebitmapw", ctypes.c_void_p), ("image", ctypes.c_void_p)
+            ]
+    elif (system == "Windows"):
+        if (bufferRendering == True):
+            _fields_ = [
+                ("window", ctypes.c_void_p),
+                ("hdc", ctypes.c_void_p),
+                ("hOffset", ctypes.c_uint32),
+                ("ctx", ctypes.c_void_p),
+                ("hdcMem", ctypes.c_void_p),
+                ("bitmap", ctypes.c_void_p),
+                ("maxSize", area),
+                ("minSize", area)
+            ]
+        else:
+            _fields_ = [
+                ("window", ctypes.c_void_p), ("hdc", ctypes.c_void_p), ("hOffset", ctypes.c_uint32), ("ctx", ctypes.c_void_p), ("maxSize", area), ("minSize", area)
+            ]
+
 class window(Structure):
     if bufferRendering == True:
-        _fields_ = [("src", window_src), ("buffer", POINTER(c_uint8)), ("event", Event), ("r", rect), ("fpsCap", c_uint8)]
+        _fields_ = [("src", window_src), ("buffer", POINTER(c_uint8)), ("userPtr", ctypes.c_void_p), ("event", Event), ("r", rect), ("_lastMousePoint", point), ("winArgs", ctypes.c_uint32)]
     else:
-        _fields_ = [("src", window_src), ("event", Event), ("r", rect), ("fpsCap", c_int32)]
-
+         _fields_ = [("src", window_src), ("userPtr", ctypes.c_void_p), ("event", Event), ("r", rect), ("_lastMousePoint", point), ("winArgs", ctypes.c_uint32)]
+    
     def checkEvent(this):
         return lib.RGFW_window_checkEvent(this)
     
-    def checkEvents(this):
-        return lib.RGFW_window_checkEvents(this)
+    def eventWait(this, waitMS):
+        return lib.RGFW_window_eventWait(this, waitMS)
+
+    def checkEvents(this, waitMS):
+        return lib.RGFW_window_checkEvents(this, waitMS)
         
     def shouldClose(this):
         return lib.RGFW_window_shouldClose(this)
@@ -200,6 +207,9 @@ class window(Structure):
     def makeCurrent(this):
         return lib.RGFW_window_makeCurrent(this)
 
+    def makeCurrent_OpenGL(this):
+        return lib.RGFW_window_makeCurrent_OpenGL(this)
+
     def getMousePoint(this): 
         return lib.RGFW_window_getMousePoint(this)
     
@@ -235,6 +245,12 @@ else:
     thread = c_void_p
 
 # Function prototypes
+lib.RGFW_setClassName.argtypes = [c_char_p]
+lib.RGFW_setClassName.restype = None
+
+lib.RGFW_setBufferSize.argtypes = [area]
+lib.RGFW_setBufferSize.restype = None
+
 lib.RGFW_createWindow.argtypes = [c_char_p, rect, c_uint16]
 lib.RGFW_createWindow.restype = POINTER(window)
 
@@ -244,13 +260,19 @@ lib.RGFW_getScreenSize.restype = area
 lib.RGFW_window_checkEvent.argtypes = [POINTER(window)]
 lib.RGFW_window_checkEvent.restype = POINTER(Event)
 
-lib.RGFW_window_checkEvents.argtypes = [POINTER(window)]
+lib.RGFW_window_checkEvents.argtypes = [POINTER(window), c_uint32]
 lib.RGFW_window_checkEvents.restype = None
+
+lib.RGFW_window_eventWait.argtypes = [POINTER(window), c_int32]
+lib.RGFW_window_eventWait.restype = None
+
+lib.RGFW_window_eventWait.argtypes = []
+lib.RGFW_window_eventWait.restype = None
 
 lib.RGFW_window_close.argtypes = [POINTER(window)]
 lib.RGFW_window_close.restype = None
 
-lib.RGFW_window_move.argtypes = [POINTER(window), vector]
+lib.RGFW_window_move.argtypes = [POINTER(window), point]
 lib.RGFW_window_move.restype = None
 
 lib.RGFW_window_moveToMonitor.argtypes = [POINTER(window), monitor]
@@ -311,12 +333,12 @@ lib.RGFW_window_setShouldClose.argtypes = [POINTER(window)]
 lib.RGFW_window_setShouldClose.restype = None
 
 lib.RGFW_getGlobalMousePoint.argtypes = []
-lib.RGFW_getGlobalMousePoint.restype = vector
+lib.RGFW_getGlobalMousePoint.restype = point
 
 lib.RGFW_window_showMouse.argtypes = [POINTER(window), c_int]
 lib.RGFW_window_showMouse.restype = None
 
-lib.RGFW_window_moveMouse.argtypes = [POINTER(window), vector]
+lib.RGFW_window_moveMouse.argtypes = [POINTER(window), point]
 lib.RGFW_window_moveMouse.restype = None
 
 lib.RGFW_window_shouldClose.argtypes = [POINTER(window)]
@@ -343,8 +365,11 @@ lib.RGFW_window_getMonitor.restype = monitor
 lib.RGFW_window_makeCurrent.argtypes = [POINTER(window)]
 lib.RGFW_window_makeCurrent.restype = None
 
+lib.RGFW_window_makeCurrent_OpenGL.argtypes = [POINTER(window)]
+lib.RGFW_window_makeCurrent_OpenGL.restype = None
+
 lib.RGFW_window_getMousePoint.argtypes = [POINTER(window)]
-lib.RGFW_window_getMousePoint.restype = vector
+lib.RGFW_window_getMousePoint.restype = point
 
 lib.RGFW_window_setGPURender.argtypes = [POINTER(window), c_int]
 lib.RGFW_window_setGPURender.restype = None
@@ -355,14 +380,35 @@ lib.RGFW_window_setCPURender.restype = None
 lib.RGFW_Error.argtypes = []
 lib.RGFW_Error.restype = c_uint8
 
-lib.RGFW_isPressedI.argtypes = [POINTER(window), c_uint32]
-lib.RGFW_isPressedI.restype = c_uint8
+lib.RGFW_isReleased.argtypes = [POINTER(window), c_uint8]
+lib.RGFW_isReleased.restype = c_uint8
 
-lib.RGFW_keyCodeTokeyStr.argtypes = [c_uint64]
-lib.RGFW_keyCodeTokeyStr.restype = c_char_p
+lib.RGFW_isHeld.argtypes = [POINTER(window), c_uint8]
+lib.RGFW_isHeld.restype = c_uint8
 
-lib.RGFW_keyStrToKeyCode.argtypes = [c_char_p]
-lib.RGFW_keyStrToKeyCode.restype = c_uint32
+lib.RGFW_isPressed.argtypes = [POINTER(window), c_uint8]
+lib.RGFW_isPressed.restype = c_uint8
+
+lib.RGFW_isClicked.argtypes = [POINTER(window), c_uint8]
+lib.RGFW_isClicked.restype = c_uint8
+
+lib.RGFW_isMouseReleased.argtypes = [POINTER(window), c_uint8]
+lib.RGFW_isMouseReleased.restype = c_uint8
+
+lib.RGFW_isMouseHeld.argtypes = [POINTER(window), c_uint8]
+lib.RGFW_isMouseHeld.restype = c_uint8
+
+lib.RGFW_isMousePressed.argtypes = [POINTER(window), c_uint8]
+lib.RGFW_isMousePressed.restype = c_uint8
+
+lib.RGFW_shouldShift.argtypes = [c_uint32, c_uint8]
+lib.RGFW_shouldShift.restype = c_char
+
+lib.RGFW_keyCodeToChar.argtypes = [c_uint32, c_uint8]
+lib.RGFW_keyCodeToChar.restype = c_char
+
+lib.RGFW_keyCodeToCharAuto.argtypes = [c_uint32, c_uint8]
+lib.RGFW_keyCodeToCharAuto.restype = c_char
 
 lib.RGFW_clipboardFree.argtypes = [c_char_p]
 lib.RGFW_clipboardFree.restype = None
@@ -372,9 +418,6 @@ lib.RGFW_readClipboard.restype = c_char_p
 
 lib.RGFW_writeClipboard.argtypes = [c_char_p, c_uint32]
 lib.RGFW_writeClipboard.restype = None
-
-lib.RGFW_keystrToChar.argtypes = [c_char_p]
-lib.RGFW_keystrToChar.restype = c_char
 
 lib.RGFW_createThread.argtypes = [CFUNCTYPE(c_void_p, c_void_p), c_void_p]
 lib.RGFW_createThread.restype = thread
@@ -388,14 +431,14 @@ lib.RGFW_joinThread.restype = None
 lib.RGFW_setThreadPriority.argtypes = [thread, c_uint8]
 lib.RGFW_setThreadPriority.restype = None
 
-lib.RGFW_registerJoystick.argtypes = [POINTER(window), c_int32]
-lib.RGFW_registerJoystick.restype = c_uint16
+lib.RGFW_registerGamepad.argtypes = [POINTER(window), c_int32]
+lib.RGFW_registerGamepad.restype = c_uint16
 
-lib.RGFW_registerJoystickF.argtypes = [POINTER(window), c_char_p]
-lib.RGFW_registerJoystickF.restype = c_uint16
+lib.RGFW_registerGamepadF.argtypes = [POINTER(window), c_char_p]
+lib.RGFW_registerGamepadF.restype = c_uint16
 
-lib.RGFW_isPressedJS.argtypes = [POINTER(window), c_uint16, c_uint8]
-lib.RGFW_isPressedJS.restype = c_uint32
+lib.RGFW_isPressedGP.argtypes = [POINTER(window), c_uint16, c_uint8]
+lib.RGFW_isPressedGP.restype = c_uint32
 
 lib.RGFW_setGLStencil.argtypes = [c_int32]
 lib.RGFW_setGLStencil.restype = None
@@ -409,7 +452,10 @@ lib.RGFW_setGLStereo.restype = None
 lib.RGFW_setGLAuxBuffers.argtypes = [c_int32]
 lib.RGFW_setGLAuxBuffers.restype = None
 
-lib.RGFW_setGLVersion.argtypes = [c_int32, c_int32]
+lib.RGFW_setDoubleBuffer.argtypes = [c_uint8]
+lib.RGFW_setDoubleBuffer.restype = None
+
+lib.RGFW_setGLVersion.argtypes = [c_uint8, c_int32, c_int32]
 lib.RGFW_setGLVersion.restype = None
 
 lib.RGFW_getProcAddress.argtypes = [c_char_p]
@@ -450,23 +496,23 @@ windowquitfunc       = CFUNCTYPE(POINTER(window))
 # RGFW.focusIn / RGFW_focusOut, the window who's focus has changed and if its inFocus */
 FOCUSCALLBACK       = CFUNCTYPE(POINTER(window), c_uint8)
 # RGFW.mouseEnter / RGFW_mouseLeave, the window that changed, the point of the mouse (enter only) and if the mouse has entered */
-mouseNotifyfunc       = CFUNCTYPE(POINTER(window), vector, c_uint8)
+mouseNotifyfunc       = CFUNCTYPE(POINTER(window), point, c_uint8)
 # RGFW.mousePosChanged, the window that the move happened on and the new point of the mouse  */
-mouseposfunc       = CFUNCTYPE(POINTER(window), vector)
+mouseposfunc       = CFUNCTYPE(POINTER(window), point)
 #  RGFW.dnd, the window that had the drop, the drop data and the amount files dropped */
 dndfunc       = CFUNCTYPE(POINTER(window), POINTER(c_char_p), c_uint32)
 # RGFW.dnd_init, the window, the point of the drop on the windows */
-dndInitfunc       = CFUNCTYPE(POINTER(window), vector)
+dndInitfunc       = CFUNCTYPE(POINTER(window), point)
 # RGFW.windowRefresh, the window that needs to be refreshed */
 windowrefreshfunc       = CFUNCTYPE(POINTER(window))
 # RGFW.keyPressed / RGFW_keyReleased, the window that got the event, the keycode, the string version, the state of mod keys, if it was a press (else it's a release) */
 keyfunc       = CFUNCTYPE(POINTER(window), c_uint32, c_char * 16, c_uint8, c_uint8)
 # RGFW.mouseButtonPressed / RGFW_mouseButtonReleased, the window that got the event, the button that was pressed, the scroll value, if it was a press (else it's a release)  */
 mousebuttonfunc       = CFUNCTYPE(POINTER(window), c_uint8, c_double, c_uint8)
-# RGFW.jsButtonPressed / RGFW_jsButtonReleased, the window that got the event, the button that was pressed, the scroll value, if it was a press (else it's a release) */
-jsButtonfunc       = CFUNCTYPE(POINTER(window), c_uint16, c_uint8, c_uint8)
-# RGFW.jsAxisMove, the window that got the event, the joystick in question, the axis values and the amount of axises */
-jsAxisfunc       = CFUNCTYPE(POINTER(window), c_uint16, vector * 2, c_uint8)
+# RGFW.gpButtonPressed / RGFW_gpButtonReleased, the window that got the event, the button that was pressed, the scroll value, if it was a press (else it's a release) */
+gpButtonfunc       = CFUNCTYPE(POINTER(window), c_uint16, c_uint8, c_uint8)
+# RGFW.gpAxisMove, the window that got the event, the gamepad in question, the axis values and the amount of axises */
+gpAxisfunc       = CFUNCTYPE(POINTER(window), c_uint16, point * 2, c_uint8)
 
 
 lib.RGFW_setWindowMoveCallback.argtypes = [windowmovefunc]
@@ -502,14 +548,14 @@ lib.RGFW_setKeyCallback.restype = None
 lib.RGFW_setMouseButtonCallback.argtypes = [mousebuttonfunc]
 lib.RGFW_setMouseButtonCallback.restype = None
 
-lib.RGFW_setjsButtonCallback.argtypes = [jsButtonfunc]
-lib.RGFW_setjsButtonCallback.restype = None
+lib.RGFW_setgpButtonCallback.argtypes = [gpButtonfunc]
+lib.RGFW_setgpButtonCallback.restype = None
 
-lib.RGFW_setjsAxisCallback.argtypes = [jsAxisfunc]
-lib.RGFW_setjsAxisCallback.restype = None
+lib.RGFW_setgpAxisCallback.argtypes = [gpAxisfunc]
+lib.RGFW_setgpAxisCallback.restype = None
 
-keyPressed = 2 # a key has been pressed */
-keyReleased = 3 #!< a key has been released*/
+keyPressed = 1 # a key has been pressed */
+keyReleased = 2 #!< a key has been released*/
 """
 #! key event note
 	the code of the key pressed is stored in
@@ -522,30 +568,30 @@ keyReleased = 3 #!< a key has been released*/
 	RGFW_Event.lockState holds the current lockState
 	this means if CapsLock, NumLock are active or not
 """
-mouseButtonPressed = 4 #!< a mouse button has been pressed (left,middle,right)*/
-mouseButtonReleased = 5 #!< a mouse button has been released (left,middle,right)*/
-mousePosChanged = 6 #!< the position of the mouse has been changed*/
+mouseButtonPressed = 3 #!< a mouse button has been pressed (left,middle,right)*/
+mouseButtonReleased = 4 #!< a mouse button has been released (left,middle,right)*/
+mousePosChanged = 5 #!< the position of the mouse has been changed*/
 """
 #! mouse event note
-	the x and y of the mouse can be found in the vector, RGFW_Event.point
+	the x and y of the mouse can be found in the point, RGFW_Event.point
 
 	RGFW_Event.button holds which mouse button was pressed
 """
-jsButtonPressed = 7 #!< a joystick button was pressed */
-jsButtonReleased = 8 #!< a joystick button was released */
-jsAxisMove = 9 #!< an axis of a joystick was moved*/
+gpButtonPressed = 6 #!< a gamepad button was pressed */
+gpButtonReleased = 7 #!< a gamepad button was released */
+gpAxisMove = 8 #!< an axis of a gamepad was moved*/
 """
-#! joystick event note
-	RGFW_Event.joystick holds which joystick was altered, if any
-	RGFW_Event.button holds which joystick button was pressed
+#! gamepad event note
+	RGFW_Event.gamepad holds which gamepad was altered, if any
+	RGFW_Event.button holds which gamepad button was pressed
 
 	RGFW_Event.axis holds the data of all the axis
 	RGFW_Event.axisCount says how many axis there are
 
 """
 
-windowMoved = 10 #!< the window was moved (by the user) */
-windowResized = 11 #!< the window was resized (by the user) */
+windowMoved = 9 #!< the window was moved (by the user) */
+windowResized = 10 #!< the window was resized (by the user) */
 """
 # attribs change event note
 	The event data is sent straight to the window structure
@@ -560,18 +606,18 @@ focusOut = 13 #!< window is out of focus now */
 	with win->r.x, win->r.y, win->r.w and win->r.h
 """
 
-RGFW_mouseEnter = 14 #* mouse entered the window */
+mouseEnter = 14 #* mouse entered the window */
 mouseLeave =15 #* mouse left the window */
 
 windowRefresh = 16 #* The window content needs to be refreshed */
 
 
-quit = 33 #!< the user clicked the quit button*/ 
-dnd = 34 #!< a file has been dropped into the window*/
-dnd_init = 35 #!< the start of a dnd event, when the place where the file drop is known */
+quit = 16 #!< the user clicked the quit button*/ 
+dnd = 17 #!< a file has been dropped into the window*/
+dnd_init = 18 #!< the start of a dnd event, when the place where the file drop is known */
 """
  dnd data note
-	The x and y coords of the drop are stored in the vector RGFW_Event.point
+	The x and y coords of the drop are stored in the point RGFW_Event.point
 
 	RGFW_Event.droppedFilesCount holds how many files were dropped
 
@@ -588,21 +634,23 @@ mouseScrollDown =  5 #!< mouse wheel is scrolling down*/
 CAPSLOCK = (1 << 1)
 NUMLOCK = (1 << 2)
 
-JS_A = 0 # or PS X button */
-JS_B = 1 # or PS circle button */
-JS_Y = 2 # or PS triangle button */
-JS_X = 3 # or PS square button */
-JS_START = 9 # start button */
-JS_SELECT = 8 # select button */
-JS_HOME = 10 # home button */
-JS_UP = 13 # dpad up */
-JS_DOWN = 14 # dpad down*/
-JS_LEFT = 15 # dpad left */
-JS_RIGHT = 16 # dpad right */
-JS_L1 = 4 # left bump */
-JS_L2 = 5 # left trigger*/
-JS_R1 = 6 # right bumper */
-JS_R2 = 7 # right trigger */
+GP_A = 0 # or PS X button */
+GP_B = 1 # or PS circle button */
+GP_Y = 2 # or PS triangle button */
+GP_X = 3 # or PS square button */
+GP_START = 9 # start button */
+GP_SELECT = 8 # select button */
+GP_HOME = 10 # home button */
+GP_UP = 13 # dpad up */
+GP_DOWN = 14 # dpad down*/
+GP_LEFT = 15 # dpad left */
+GP_RIGHT = 16 # dpad right */
+GP_L1 = 4 # left bump */
+GP_L2 = 5 # left trigger*/
+GP_R1 = 6 # right bumper */
+GP_R2 = 7 # right trigger */
+GP_L3 = 11 # left thumb stick */
+GP_R3 = 12  # !< right thumb stick */
 
 TRANSPARENT_WINDOW		    = (1<<9)  #!< the window is transparent */
 NO_BORDER		    = (1<<3)  #!< the window doesn't have border */
@@ -621,6 +669,13 @@ NO_CPU_RENDER     = (1<<15)  # don't render (using the CPU based buffer renderin
 
 def cstrToStr(str : ctypes.c_char_p):
     return ctypes.string_at(str).decode('utf-8')
+
+def setClassName(str):
+    c_string = ctypes.c_char_p(str.encode('utf-8'))
+    lib.RGFW_csetClassName(c_string)
+
+def RGFW_setBufferSize(area):
+    lib.RGFW_setBufferSize(area)
 
 def createWindow(name, rect, args):
     c_string = ctypes.c_char_p(name.encode('utf-8'))
@@ -643,14 +698,35 @@ def getGlobalMousePoint():
 def Error():
     return lib.RGFW_Error()
 
-def isPressedI(win, key):
-    return lib.RGFW_isPressedI(win, key)
+# ! returns true if the key should be shifted */
+def shouldShift(keycode, lockState):
+    return lib.RGFW_shouldShift(keycode, lockState)
 
-def keyCodeTokeyStr(key):
-    return lib.RGFW_keyCodeTokeyStr(key)
+# ! get char from RGFW keycode (using a LUT), uses shift'd version if shift = true */
+def keyCodeToChar(keycode, shift):
+    return lib.RGFW_keyCodeToChar(keycode, shift)
 
-def keyStrToKeyCode(key):
-    return lib.RGFW_keyStrToKeyCode(key)
+# ! get char from RGFW keycode (using a LUT), uses lockState for shouldShift) */
+def keyCodeToCharAuto(keycode, lockState):
+    return lib.RGFW_keyCodeToCharAuto(keycode, lockState)
+
+def isPressed(win, key):
+    return lib.RGFW_isPressed(win, key)
+
+def isReleased(win, key):
+    return lib.RGFW_isReleased(win, key)
+
+def isClicked(win, key):
+    return lib.RGFW_isClicked(win, key)
+
+def isMousePressed(win, key):
+    return lib.RGFW_isMousePressed(win, key)
+
+def wasMousePressed(win, key):
+    return lib.RGFW_wasMousePressed(win, key)
+
+def isMouseReleased(win, key):
+    return lib.RGFW_isMouseReleased(win, key)
 
 def readClipboard(size):
     return lib.RGFW_readClipboard(size)
@@ -661,9 +737,6 @@ def clipboardFree(string):
 def writeClipboard(text):
     c_string = ctypes.c_char_p(text.encode('utf-8'))
     return lib.RGFW_writeClipboard(c_string, len(text))
-
-def keystrToChar(key):
-    return lib.RGFW_keystrToChar(key)
 
 def createThread(function_ptr, args):
     return lib.RGFW_createThread(function_ptr, args)
@@ -677,14 +750,14 @@ def joinThread(thread):
 def setThreadPriority(thread, priority):
     return lib.RGFW_setThreadPriority(thread, priority)
 
-def registerJoystick(win, jsNumber):
-    return lib.RGFW_registerJoystick(win, jsNumber)
+def registerGamepad(win, gpNumber):
+    return lib.RGFW_registerGamepad(win, gpNumber)
 
-def registerJoystickF(win, file):
-    return lib.RGFW_registerJoystickF(win, file)
+def registerGamepadF(win, file):
+    return lib.RGFW_registerGamepadF(win, file)
 
-def isPressedJS(win, controller, button):
-    return lib.RGFW_isPressedJS(win, controller, button)
+def isPressedGP(win, controller, button):
+    return lib.RGFW_isPressedGP(win, controller, button)
 
 def setGLStencil(stencil):
     return lib.RGFW_setGLStencil(stencil)
@@ -698,8 +771,15 @@ def setGLStereo(stereo):
 def setGLAuxBuffers(auxBuffers):
     return lib.RGFW_setGLAuxBuffers(auxBuffers)
 
-def setGLVersion(major, minor):
-    return lib.RGFW_setGLVersion(major, minor)
+def setDoubleBuffer(useDoubleBuffer): 
+    return lib.RGFW_setDoubleBuffer(useDoubleBuffer)
+
+
+GL_CORE = 0
+GL_COMPATIBILITY = 1
+
+def setGLVersion(profile, major, minor):
+    return lib.RGFW_setGLVersion(profile, major, minor)
 
 def getProcAddress(procname):
     return lib.RGFW_getProcAddress(procname)
@@ -716,6 +796,8 @@ def sleep(microsecond):
 def getScreenSize():
     return lib.RGFW_getScreenSize()
 
+def stopCheckEvents():
+    return lib.RGFW_stopCheckEvents(this)
 
 def setWindowMoveCallback(func): 
     lib.RGFW_setWindowMoveCallback(func)
@@ -741,10 +823,10 @@ def setKeyCallback(func):
     lib.RGFW_setKeyCallback = func 
 def setMouseButtonCallback(func): 
     lib.RGFW_setMouseButtonCallback(func)
-def setjsButtonCallback(func): 
-    lib.RGFW_setjsButtonCallback(func)
-def setjsAxisCallback(func):
-    lib.RGFW_setjsAxisCallback(func)
+def setgpButtonCallback(func): 
+    lib.RGFW_setgpButtonCallback(func)
+def setgpAxisCallback(func):
+    lib.RGFW_setgpAxisCallback(func)
 
 KEY_NULL = 0
 Escape = 1

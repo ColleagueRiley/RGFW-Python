@@ -1,6 +1,7 @@
 import RGFW
 from OpenGL.GL import *
 
+
 icon = [0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0xFF, 0xFF, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0xFF]
 running = 1
 
@@ -42,28 +43,26 @@ def main():
                 running = 0  
                 break
             
-            if (RGFW.isPressedI(win, RGFW.Up)):
+            if (RGFW.isPressed(win, RGFW.Up)):
                 string = RGFW.readClipboard(None)
                 print("Pasted : ", RGFW.cstrToStr(string))
 
-            elif (RGFW.isPressedI(win, RGFW.Down)):
+            elif (RGFW.isPressed(win, RGFW.Down)):
                 RGFW.writeClipboard("DOWN")
-            elif (RGFW.isPressedI(win, RGFW.Space)):
-                print("fps : ", win.event.fps)
-            elif (RGFW.isPressedI(win, RGFW.w)):
+            elif (RGFW.isPressed(win, RGFW.w)):
                 win.setMouseDefault()
-            elif (RGFW.isPressedI(win, RGFW.q)):
+            elif (RGFW.isPressed(win, RGFW.q)):
                 win.showMouse(0)
-            elif (RGFW.isPressedI(win, RGFW.t)):
+            elif (RGFW.isPressed(win, RGFW.t)):
                 win.setMouse(icon, RGFW.area(3, 3), 4)
             
             if (win.event.type == RGFW.dnd):
                 for i in range(win.event.droppedFilesCount):
                     print("dropped :", RGFW.cstrToStr(win.event.droppedFiles[i]))
-            elif (win.event.type == RGFW.jsButtonPressed):
+            elif (win.event.type == RGFW.gpButtonPressed):
                 print("pressed :", win.event.button)
 
-            elif (win.event.type == RGFW.jsAxisMove and not win.event.button):
+            elif (win.event.type == RGFW.gpAxisMove and not win.event.button):
                 print("{", win.event.axis[0].x, "} {", win.event.axis[0].y, "}")
 
         drawLoop(win)

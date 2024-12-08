@@ -47,11 +47,7 @@ debug:
 	make libRGFW$(LIB_EXT)
 	python3 basic.py
 
-RGFW.h:
-	curl -o RGFW.h https://raw.githubusercontent.com/ColleagueRiley/RGFW/main/RGFW.h
-
 RGFW.o:
-	make RGFW.h
 	$(CC) $(CUSTOM_CFLAGS) -x c -c RGFW.h -D RGFW_OPENGL -D RGFW_BUFFER -D RGFW_IMPLEMENTATION -D RGFW_NO_JOYSTICK_CODES -fPIC
 
 libRGFW$(LIB_EXT):
