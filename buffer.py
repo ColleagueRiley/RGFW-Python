@@ -9,6 +9,7 @@ def drawRect(win, r, color):
             
             for i in range(3):
                 win.buffer[index + i] = color[i]
+            win.buffer[index + 3] = 255;
 
 def main():
     win = RGFW.createWindow("RGFW Example Window", RGFW.rect(500, 500, 500, 500), RGFW.ALLOW_DND | RGFW.CENTER)
